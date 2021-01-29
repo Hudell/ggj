@@ -13,6 +13,6 @@
         "start": "nw . --test"
     },
     "dependencies": {
-        "nwjs": "^1.4.4"
+        "nw": "^0.51.0"
     }
 }
