@@ -8,5 +8,11 @@
         "height": 720,
         "position": "center",
         "icon": "icon/icon.png"
+    },
+    "scripts": {
+        "start": "nw . --test"
+    },
+    "dependencies": {
+        "nwjs": "^1.4.4"
     }
 }
