@@ -685,15 +685,6 @@ class GGJ$1 extends CyclonePlugin {
       console.log('A new player has joined the room.');
     }
 
-    // const { id, color, alive, position } = message;
-
-    // this.playerList.push({
-    //   id,
-    //   color,
-    //   alive,
-    //   position,
-    // });
-
     this.runEvent('playerChange');
   }
 
@@ -724,6 +715,10 @@ class GGJ$1 extends CyclonePlugin {
 
   static alive() {
     return this.getAttribute('alive');
+  }
+
+  static players() {
+    return this?._room?.state?.players.$items || new Map();
   }
 }
 
@@ -936,7 +931,10 @@ class WindowLobby extends Window_Command {
   initialize(rect) {
     super.initialize(rect);
     GGJ.registerEvent('playerChange', () => {
-      this.refresh();
+      setTimeout(() => {
+        console.log(GGJ._room?.state.players.length);
+        this.refresh();
+      }, 300);
     });
   }
 
@@ -949,24 +947,45 @@ class WindowLobby extends Window_Command {
   }
 
   makeCommandList() {
-    // let count = 0;
-
-    for (let i = 1; i <= 8; i++) {
-      const player = this.getPlayerData(i - 1);
+    const players = GGJ.players();
+    let count = 0;
+    // eslint-disable-next-line no-unused-vars
+    for (let [index, player] of players) {
       if (!player) {
-        this.addCommand('-', `player_${ i }`);
         continue;
       }
 
+      const { color = 'unknown' } = player;
+      const camelColor = color[0].toUpperCase() + color.substr(1);
+
+      count++;
       if (player.id === GGJ.myId) {
-        this.addCommand(`${ player.color } *`, `player_${ i }`);
+        this.addCommand('-> ' + camelColor, `player_${ count }`, true);
       } else {
-        this.addCommand(`${ player.color }`, `player_${ i }`);
+        this.addCommand(camelColor, `player_${ count }`, false);
       }
     }
 
-    this.addCommand('Start', 'start');
-    this.addCommand('Leave', 'leave');
+    for (let i = count +1; i <= 8; i++) {
+      this.addCommand('-', `player_${ i }`);
+    }
+  }
+
+  itemTextAlign() {
+    return 'left';
+  }
+
+  isCommandEnabled(index) {
+    return false;
+  }
+
+  drawItem(index) {
+    const rect = this.itemLineRect(index);
+    const align = this.itemTextAlign();
+    this.resetTextColor();
+    const isMe = this._list[index].enabled;
+    this.changePaintOpacity(isMe);
+    this.drawText(this.commandName(index), rect.x, rect.y, rect.width, align);
   }
 
   processOk() {
@@ -1013,12 +1032,12 @@ GGJ.patchClass(Scene_Title, $super => class {
   }
 
   lobbyWindowRect() {
-    const offsetX = $dataSystem.titleCommandWindow.offsetX;
-    const offsetY = $dataSystem.titleCommandWindow.offsetY;
-    const ww = this.mainCommandWidth();
-    const wh = this.calcWindowHeight(10, true);
-    const wx = (Graphics.boxWidth - ww) / 2 + offsetX;
-    const wy = Graphics.boxHeight - wh - 96 + offsetY;
+    const offsetX = 8;
+    const offsetY = 8;
+    const ww = 300;
+    const wh = Graphics.height - offsetY;
+    const wx = (Graphics.width - ww - offsetX);
+    const wy = 0;
     return new Rectangle(wx, wy, ww, wh);
   }
 
