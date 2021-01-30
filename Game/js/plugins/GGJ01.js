@@ -573,14 +573,157 @@ class CyclonePlugin extends CyclonePatcher {
   }
 }
 
+function throttle(fn, delay) {
+  let timeout;
+  let latestArgs;
+  let needsCalling = false;
+
+  const call = () => {
+    timeout = setTimeout(() => {
+      if (needsCalling) {
+        call();
+      } else {
+        timeout = false;
+      }
+      needsCalling = false;
+    }, delay);
+
+    fn.call(this, ...latestArgs);
+  };
+
+  const debounced = function(...args) {
+    latestArgs = args;
+    if (timeout) {
+      needsCalling = true;
+      return;
+    }
+
+    call();
+  };
+
+  return debounced;
+}
+
+let client;
+
+const sendPosition = throttle((room) => {
+  // room.send('move', {
+  //   x: $gamePlayer._x,
+  //   y: $gamePlayer._y,
+  // });
+}, 300);
+
+
 class GGJ$1 extends CyclonePlugin {
   static register() {
     super.initialize('GGJ');
     super.register({});
 
-    // const inputField = '<input style="width:0;padding:0;border:0;margin:0;display:none;position:absolute;left:0;top:0;" type="text" id="inputField"/>';
-    // document.body.innerHTML += inputField;
+    this.playerList = [];
+    this.myId = false;
   }
+
+  static get serverUrl() {
+    return 'ws://localhost:2567';
+  }
+
+  static get client() {
+    if (client) {
+      return client;
+    }
+
+    if (!globalThis.Colyseus) {
+      throw new Error('The core file of Colyseus.js was not found. It needs to be added to your plugin list along with CycloneColyseus.');
+    }
+
+    client = new globalThis.Colyseus.Client(this.serverUrl);
+    return client;
+  }
+
+  static createGame() {
+    this.client.joinOrCreate('battle_room', {
+      name: 'Player',
+    }).then(room => {
+      this.myId = room.sessionId;
+
+      console.log(room);
+      this._room = room;
+
+      room.onStateChange((state) => {
+        console.log(room.name, 'has new state:', state);
+      });
+
+      room.onMessage('join', (message) => {
+        this.playerJoined(message);
+        // if (message.id === this.myId) {
+        //   console.log("And it's me!");
+        // }
+
+        // console.log(client.id, 'join', room.name, message);
+
+        // this._message = message;
+      });
+
+      room.onError((code, message) => {
+        console.log(client.id, 'couldn\'t join', room.name);
+      });
+
+      room.onLeave((code) => {
+        console.log(client.id, 'left', room.name);
+      });
+    });
+  }
+
+  static playerJoined(message) {
+    if (message.id === this.myId) {
+      console.log("I've joined the room.");
+    } else {
+      console.log('A new player has joined the room.');
+    }
+
+    // const { id, color, alive, position } = message;
+
+    // this.playerList.push({
+    //   id,
+    //   color,
+    //   alive,
+    //   position,
+    // });
+
+    this.runEvent('playerChange');
+  }
+
+  static playerLeft(message) {
+
+    this.runEvent('playerChange');
+  }
+
+  static sendPlayerPosition() {
+    if (!this._room) {
+      return;
+    }
+
+    sendPosition(this._room);
+  }
+
+  static getAttribute(name) {
+    if (!this._message) {
+      return;
+    }
+
+    return this._message[name];
+  }
+
+  static getMyColor() {
+    return this.getAttribute('color');
+  }
+
+  static alive() {
+    return this.getAttribute('alive');
+  }
+
+
+
 }
 
 globalThis.GGJ = GGJ$1;
@@ -791,21 +934,38 @@ class WindowLobby extends Window_Command {
 
   initialize(rect) {
     super.initialize(rect);
-
+    GGJ.registerEvent('playerChange', () => {
+      this.refresh();
+    });
   }
 
   getPlayerName(number) {
     return number;
   }
 
+  getPlayerData(index) {
+    return GGJ._room?.state?.players.getByIndex(index);
+  }
+
   makeCommandList() {
+    // let count = 0;
+
     for (let i = 1; i <= 8; i++) {
-      this.addCommand(`Player ${ i }: ${ this.getPlayerName(i) }`, `player_${ i }`);
+      const player = this.getPlayerData(i - 1);
+      if (!player) {
+        this.addCommand('-', `player_${ i }`);
+        continue;
+      }
+
+      if (player.id === GGJ.myId) {
+        this.addCommand(`${ player.color } *`, `player_${ i }`);
+      } else {
+        this.addCommand(`${ player.color }`, `player_${ i }`);
+      }
     }
 
-    const startEnabled = false;
-    this.addCommand('Start', 'start', startEnabled);
-    this.addCommand('Abort', 'abort');
+    this.addCommand('Start', 'start');
+    this.addCommand('Leave', 'leave');
   }
 
   processOk() {
@@ -815,7 +975,7 @@ class WindowLobby extends Window_Command {
 
 GGJ.patchClass(Scene_Title, $super => class {
   commandJoinGame() {
-    CycloneColyseus.createGame();
+    GGJ.createGame();
     this._commandWindow.hide();
 
     if (!this._lobbyWindow) {
@@ -863,6 +1023,34 @@ GGJ.patchClass(Scene_Title, $super => class {
 
   terminate() {
     $super.terminate.call(this);
+  }
+});
+
+function pluginIsActive(pluginName) {
+  for (const plugin of globalThis.$plugins) {
+    if (!plugin?.status) {
+      continue;
+    }
+    if (!plugin?.description?.includes(`<pluginName:${ pluginName }`)) { //`
+      continue;
+    }
+
+    return true;
+  }
+
+  return false;
+}
+
+GGJ.patchClass(Scene_Boot, $super => class {
+  startNormalGame() {
+    if (pluginIsActive('CycloneMapEditor')) {
+      this.checkPlayerLocation();
+      DataManager.setupNewGame();
+      SceneManager.goto(Scene_Map);
+      return;
+    }
+
+    $super.startNormalGame.call(this);
   }
 });
 })();

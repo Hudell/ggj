@@ -153,17 +153,13 @@ export class BattleRoom extends Room<BattleRoomState> {
   };
 
   onAuth(client: Client, data: any) {
-    console.log('new oAuth attempt');
     const player = this.state.playerOf(client);
     // Limit it up to 8 characters
     if (this.state.players.length > this.maxClients) return false;
     // Users can only join on the lobby
     if (!this.state.onLobby()) return false;
     // A player can't join twice
-    if (player) {
-      console.log('player is already here')
-      return false;
-    }
+    if (player) return false;
     // You require a name to join
     if (!data && !data.name) return false;
     // And the name must be a string
@@ -180,7 +176,6 @@ export class BattleRoom extends Room<BattleRoomState> {
     const player = this.state.playerOf(client);
     if (!player) return;
     player.position.set(START_POSITION[0], START_POSITION[1]);
-    console.log('broadcast join: ', player);
     this.broadcast('join', player);
   }
 
