@@ -63,14 +63,23 @@ export class Map extends Schema {
   }
 }
 
-export const LOBBY = new Map();
-
-LOBBY.id = 0;
-LOBBY.setupPlayers = players => {
-  for (let player of players) {
-    player.reset();
+export class Lobby extends Map {
+  setupPlayers(players: Player[]) {
+    for (let player of players) {
+      player.reset();
+    }    
   }
-};
-LOBBY.setupWeapons = i => i.splice(0, i.length);
-LOBBY.setupTrashcans = i => i.splice(0, i.length);
-LOBBY.isPassable = (x, y) => true;
+
+  setupWeapons(weapons: Weapon[]) {
+    weapons.splice(0, weapons.length);
+  }
+
+  setupTrashcans(trashcans: Trashcan[]) {
+    trashcans.splice(0, trashcans.length);
+  }
+
+  isPassable(x: number, y: number) {
+    return true;
+  }
+
+}

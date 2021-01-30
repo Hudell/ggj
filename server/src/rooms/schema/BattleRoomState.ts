@@ -7,7 +7,7 @@ import { Body } from "./Body";
 import { Player } from "./Player";
 import { Point } from "./Point";
 import { Trashcan } from "./Trashcan";
-import { LOBBY, Map } from "./Map";
+import { Lobby, Map } from "./Map";
 import { Message } from "./message";
 import { Color, COLORS } from "./Color";
 import { Weapon } from "./Weapon";
@@ -53,7 +53,7 @@ export class BattleRoomState extends Schema {
     super();
     this.room = room;
     this.phase = 'lobby';
-    this.map = LOBBY;
+    this.map = new Lobby();
     this.trashcans = new ArraySchema();
     this.players = new ArraySchema();
     this.traitors = new ArraySchema();
@@ -275,7 +275,7 @@ export class BattleRoomState extends Schema {
 
   restartLobby() {
     this.phase = 'lobby';
-    this.map = LOBBY;
+    this.map = new Lobby();
     this.map.setup(this);
     this.chat.splice(0, this.chat.length);
     this.bodies.splice(0, this.bodies.length);
