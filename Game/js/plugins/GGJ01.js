@@ -624,7 +624,7 @@ class GGJ$1 extends CyclonePlugin {
   }
 
   static get serverUrl() {
-    return 'ws://localhost:2567';
+    return 'ws://161.35.225.85:80';
   }
 
   static get client() {
@@ -662,6 +662,10 @@ class GGJ$1 extends CyclonePlugin {
         // console.log(client.id, 'join', room.name, message);
 
         // this._message = message;
+      });
+
+      room.onMessage('leave', (message) => {
+        this.playerLeft(message);
       });
 
       room.onError((code, message) => {
@@ -721,9 +725,6 @@ class GGJ$1 extends CyclonePlugin {
   static alive() {
     return this.getAttribute('alive');
   }
-
-
-
 }
 
 globalThis.GGJ = GGJ$1;
