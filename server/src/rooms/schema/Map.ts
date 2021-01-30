@@ -6,7 +6,7 @@ import { Point } from "./Point";
 import { Trashcan } from "./Trashcan";
 import { Weapon } from "./Weapon";
 
-class MeetingButton {
+class MeetingButton extends Schema {
   @type(Point)
   position: Point;
 
@@ -14,6 +14,7 @@ class MeetingButton {
   active: boolean;
 
   constructor() {
+    super();
     this.position = new Point();
     this.active = true;
   }
@@ -26,6 +27,8 @@ class MeetingButton {
 export class Map extends Schema {
   @type("int32")
   id: number;
+
+  @type(MeetingButton)
   meetingButton: MeetingButton;
 
   constructor() {
