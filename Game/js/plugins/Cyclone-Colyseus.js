@@ -660,10 +660,10 @@ function throttle(fn, delay) {
 let client;
 
 const sendPosition = throttle((room) => {
-  room.send('move', {
-    x: $gamePlayer._x,
-    y: $gamePlayer._y,
-  });
+  // room.send('move', {
+  //   x: $gamePlayer._x,
+  //   y: $gamePlayer._y,
+  // });
 }, 300);
 
 class CycloneColyseus$1 extends CyclonePlugin {
@@ -671,6 +671,8 @@ class CycloneColyseus$1 extends CyclonePlugin {
     super.initialize('CycloneColyseus');
 
     super.register({});
+
+    this.playerList = [];
   }
 
   static get serverUrl() {
@@ -690,10 +692,11 @@ class CycloneColyseus$1 extends CyclonePlugin {
     return client;
   }
 
-  static connectToLobby() {
+  static createGame() {
     this.client.joinOrCreate('battle_room', {
       name: 'Player',
     }).then(room => {
+      console.log(room);
       this._room = room;
 
       room.onStateChange((state) => {
@@ -701,7 +704,10 @@ class CycloneColyseus$1 extends CyclonePlugin {
       });
 
       room.onMessage('join', (message) => {
+        console.log('Someone joined the room');
         console.log(client.id, 'join', room.name, message);
+
+        this._message = message;
       });
 
       room.onError((code, message) => {
@@ -721,6 +727,32 @@ class CycloneColyseus$1 extends CyclonePlugin {
 
     sendPosition(this._room);
   }
+
+  static getAttribute(name) {
+    if (!this._message) {
+      return;
+    }
+
+    return this._message[name];
+  }
+
+  static getMyColor() {
+    return this.getAttribute('color');
+  }
+
+  static getMyId() {
+    return this.getAttribute('id');
+  }
+
+  static amdIAlive() {
+    return this.getAttribute('alive');
+  }
+
+  static amdTheLeader() {
+    return this.getAttribute('leader');
+  }
+
+
 }
 
 globalThis.CycloneColyseus = CycloneColyseus$1;

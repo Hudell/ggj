@@ -3,16 +3,10 @@
     "main": "index.html",
     "chromium-args": "--force-color-profile=srgb",
     "window": {
-        "title": "Game",
+        "title": "Lost & Loaded",
         "width": 1280,
         "height": 720,
         "position": "center",
         "icon": "icon/icon.png"
-    },
-    "scripts": {
-        "start": "nw . --test"
-    },
-    "dependencies": {
-        "nw": "^0.51.0"
     }
 }

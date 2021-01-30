@@ -576,10 +576,11 @@ class CyclonePlugin extends CyclonePatcher {
 class GGJ$1 extends CyclonePlugin {
   static register() {
     super.initialize('GGJ');
-
     super.register({});
-  }
 
+    // const inputField = '<input style="width:0;padding:0;border:0;margin:0;display:none;position:absolute;left:0;top:0;" type="text" id="inputField"/>';
+    // document.body.innerHTML += inputField;
+  }
 }
 
 globalThis.GGJ = GGJ$1;
@@ -773,6 +774,95 @@ GGJ.patchClass(Game_Event, $super => class {
   moveDiagonally(horz, vert) {
     $super.moveDiagonally.call(this, horz, vert);
     this.setDirection(horz);
+  }
+});
+
+GGJ.patchClass(Window_TitleCommand, $super => class {
+  makeCommandList() {
+    this.addCommand('Join Game', 'joinGame');
+    this.addCommand('Exit', 'exit');
+  }
+});
+
+class WindowLobby extends Window_Command {
+  constructor(...args) {
+    super(...args);
+  }
+
+  initialize(rect) {
+    super.initialize(rect);
+
+  }
+
+  getPlayerName(number) {
+    return number;
+  }
+
+  makeCommandList() {
+    for (let i = 1; i <= 8; i++) {
+      this.addCommand(`Player ${ i }: ${ this.getPlayerName(i) }`, `player_${ i }`);
+    }
+
+    const startEnabled = false;
+    this.addCommand('Start', 'start', startEnabled);
+    this.addCommand('Abort', 'abort');
+  }
+
+  processOk() {
+
+  }
+}
+
+GGJ.patchClass(Scene_Title, $super => class {
+  commandJoinGame() {
+    CycloneColyseus.createGame();
+    this._commandWindow.hide();
+
+    if (!this._lobbyWindow) {
+      this.createLobbyWindow();
+    }
+  }
+
+  commandExit() {
+    const gui = require('nw.gui');
+    const win = gui.Window.get();
+    win.close();
+  }
+
+  createCommandWindow() {
+    $super.createCommandWindow.call(this);
+    this._commandWindow.setHandler('joinGame', this.commandJoinGame.bind(this));
+    this._commandWindow.setHandler('exit', this.commandExit.bind(this));
+  }
+
+  commandWindowRect() {
+    const offsetX = $dataSystem.titleCommandWindow.offsetX;
+    const offsetY = $dataSystem.titleCommandWindow.offsetY;
+    const ww = this.mainCommandWidth();
+    const wh = this.calcWindowHeight(2, true);
+    const wx = (Graphics.boxWidth - ww) / 2 + offsetX;
+    const wy = Graphics.boxHeight - wh - 96 + offsetY;
+    return new Rectangle(wx, wy, ww, wh);
+  }
+
+  createLobbyWindow() {
+    const rect = this.lobbyWindowRect();
+    this._lobbyWindow = new WindowLobby(rect);
+    this.addWindow(this._lobbyWindow);
+  }
+
+  lobbyWindowRect() {
+    const offsetX = $dataSystem.titleCommandWindow.offsetX;
+    const offsetY = $dataSystem.titleCommandWindow.offsetY;
+    const ww = this.mainCommandWidth();
+    const wh = this.calcWindowHeight(10, true);
+    const wx = (Graphics.boxWidth - ww) / 2 + offsetX;
+    const wy = Graphics.boxHeight - wh - 96 + offsetY;
+    return new Rectangle(wx, wy, ww, wh);
+  }
+
+  terminate() {
+    $super.terminate.call(this);
   }
 });
 })();
