@@ -30,12 +30,16 @@
 
     <script>
       // var host = (window.document.location.host || "localhost").replace(/:.*/, '');
-      var client = new Colyseus.Client('ws://161.35.225.85:80');
+      var client = new Colyseus.Client('ws://127.0.0.1:25672');
+      // var client = new Colyseus.Client('ws://161.35.225.85:80');
       var room;
 
       function addListeners (room) {
           console.log('addListeners');
           room.onMessage("*", (type, message) => {
+              console.log("received message:", type, "=>", message);
+          });
+          room.onMessage("move", (type, message) => {
               console.log("received message:", type, "=>", message);
           });
 

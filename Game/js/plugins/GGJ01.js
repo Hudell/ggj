@@ -605,14 +605,20 @@ function throttle(fn, delay) {
 }
 
 let client;
+let lastX = false;
+let lastY = false;
 
 const sendPosition = throttle((room) => {
-  // room.send('move', {
-  //   x: $gamePlayer._x,
-  //   y: $gamePlayer._y,
-  // });
-}, 300);
+  const x = Math.round($gamePlayer._x);
+  const y = Math.round($gamePlayer._y);
 
+  if (x !== lastX || y !== lastY) {
+    room.send('move', {
+      x,
+      y,
+    });
+  }
+}, 300);
 
 class GGJ$1 extends CyclonePlugin {
   static register() {
@@ -624,7 +630,8 @@ class GGJ$1 extends CyclonePlugin {
   }
 
   static get serverUrl() {
-    return 'ws://161.35.225.85:80';
+    return 'ws://127.0.0.1:25672';
+    // return 'ws://161.35.225.85:80';
   }
 
   static get client() {
@@ -640,32 +647,55 @@ class GGJ$1 extends CyclonePlugin {
     return client;
   }
 
+  static queryRooms() {
+    this.client.getAvailableRooms().then((message) => {
+      console.log(message);
+    });
+  }
+
   static createGame() {
     this.client.joinOrCreate('battle_room', {
       name: 'Player',
     }).then(room => {
       this.myId = room.sessionId;
-
-      console.log(room);
+      this.roomId = room.id;
       this._room = room;
 
       room.onStateChange((state) => {
         console.log(room.name, 'has new state:', state);
+
+        if (this.me.leader && state.players.length === 8 && state._phase === 'lobby') {
+          setTimeout(() => {
+            this._room.send('start', {});
+          }, 1000);
+          return;
+        }
+
+        if (state._phase === 'map') {
+          if (SceneManager._scene instanceof Scene_Title) {
+            this.startMatch(this._match);
+            return;
+          }
+
+          this.updateState(state);
+        }
       });
 
       room.onMessage('join', (message) => {
         this.playerJoined(message);
-        // if (message.id === this.myId) {
-        //   console.log("And it's me!");
-        // }
-
-        // console.log(client.id, 'join', room.name, message);
-
-        // this._message = message;
       });
 
       room.onMessage('leave', (message) => {
         this.playerLeft(message);
+      });
+
+      room.onMessage('start', (message) => {
+        console.log('The match is starting');
+        this._match = message;
+      });
+
+      room.onMessage('move', (message) => {
+        console.log('someone moved', message);
       });
 
       room.onError((code, message) => {
@@ -674,8 +704,18 @@ class GGJ$1 extends CyclonePlugin {
 
       room.onLeave((code) => {
         console.log(client.id, 'left', room.name);
+        SceneManager.goto(Scene_Title);
       });
     });
+  }
+
+  static startMatch(data) {
+    lastX = false;
+    lastY = false;
+    DataManager.setupNewGame();
+    setTimeout(() => {
+      SceneManager.goto(Scene_Map);
+    }, 300);
   }
 
   static playerJoined(message) {
@@ -685,12 +725,17 @@ class GGJ$1 extends CyclonePlugin {
       console.log('A new player has joined the room.');
     }
 
-    this.runEvent('playerChange');
+    this.runEvent('playerChange', {}, this._room);
   }
 
   static playerLeft(message) {
+    if (message.id === this.myId) {
+      console.log("I've left the room ??");
+    } else {
+      console.log('Someone left the room.');
+    }
 
-    this.runEvent('playerChange');
+    this.runEvent('playerChange', {}, this._room);
   }
 
   static sendPlayerPosition() {
@@ -701,24 +746,40 @@ class GGJ$1 extends CyclonePlugin {
     sendPosition(this._room);
   }
 
-  static getAttribute(name) {
-    if (!this._message) {
-      return;
+  static get players() {
+    return this?._room?.state?.players.$items || new Map();
+  }
+
+  static get me() {
+    const players = this.players;
+    // eslint-disable-next-line no-unused-vars
+    for (let [idx, player] of players) {
+      if (player.id === this.myId) {
+        return player;
+      }
     }
 
-    return this._message[name];
+    return {};
   }
 
-  static getMyColor() {
-    return this.getAttribute('color');
+  static getActorByColor(color) {
+    return $dataActors.find(a => a && a.name === color);
   }
 
-  static alive() {
-    return this.getAttribute('alive');
-  }
+  static updateState(state) {
+    const players = this.players;
+    // eslint-disable-next-line no-unused-vars
+    for (let [idx, player] of players) {
+      if (!player) {
+        continue;
+      }
 
-  static players() {
-    return this?._room?.state?.players.$items || new Map();
+      if (player.id === this.myId) {
+        continue;
+      }
+
+      $gameMap.updateOtherPlayer(player);
+    }
   }
 }
 
@@ -898,6 +959,13 @@ GGJ.patchClass(Game_Player, $super => class {
   moveDiagonally(horz, vert) {
     $super.moveDiagonally.call(this, horz, vert);
     this.setDirection(horz);
+    GGJ.sendPlayerPosition();
+  }
+
+  moveStraight(d) {
+    $super.moveStraight.call(this, d);
+
+    GGJ.sendPlayerPosition();
   }
 });
 
@@ -930,11 +998,11 @@ class WindowLobby extends Window_Command {
 
   initialize(rect) {
     super.initialize(rect);
-    GGJ.registerEvent('playerChange', () => {
-      setTimeout(() => {
-        console.log(GGJ._room?.state.players.length);
+    GGJ.registerEvent('playerChange', (room) => {
+      room.onStateChange.once((state) => {
+        console.log(state.players.length);
         this.refresh();
-      }, 300);
+      });
     });
   }
 
@@ -947,7 +1015,7 @@ class WindowLobby extends Window_Command {
   }
 
   makeCommandList() {
-    const players = GGJ.players();
+    const players = GGJ.players;
     let count = 0;
     // eslint-disable-next-line no-unused-vars
     for (let [index, player] of players) {
@@ -1071,6 +1139,67 @@ GGJ.patchClass(Scene_Boot, $super => class {
     }
 
     $super.startNormalGame.call(this);
+  }
+});
+
+GGJ.patchClass(Game_Party, $super => class {
+  setupStartingMembers() {
+    this._actors = [];
+
+    if (GGJ._room) {
+      const myColor = GGJ.me.color;
+      const actor = GGJ.getActorByColor(myColor);
+      if (actor) {
+        this._actors.push(actor.id);
+        return;
+      }
+    }
+
+    return $super.setupStartingMembers.call(this);
+  }
+});
+
+GGJ.patchClass(Game_Map, $super => class {
+  setupEvents(...args) {
+    $super.setupEvents.call(this, ...args);
+
+    this._players = [];
+    const players = GGJ.players;
+    // eslint-disable-next-line no-unused-vars
+    for (let [idx, player] of players) {
+      if (!player) continue;
+      if (player.id === GGJ.myId) continue;
+
+      this.createOtherPlayer(player);
+    }
+  }
+
+  createOtherPlayer(playerData) {
+    const actor = GGJ.getActorByColor(playerData.color);
+    if (!actor) {
+      return;
+    }
+
+    const event = this.createNormalEventAt(actor.characterName, actor.characterIndex, playerData.position.x, playerData.position.y, 6, false, true);
+    event.setThrough(true);
+    event.setMoveSpeed(3);
+
+    this._players[playerData.id] = event;
+  }
+
+  updateOtherPlayer(playerData) {
+    const event = this._players[playerData.id];
+    if (!event) {
+      return this.createOtherPlayer(playerData);
+    }
+
+    if (Math.abs(event._x - playerData.position.x) > 2 || Math.abs(event._y - playerData.position.y) > 2) {
+      event.setPosition(playerData.position.x, playerData.position.y);
+      event.clearDestination();
+    } else {
+      event.setDestination(playerData.position.x, playerData.position.y);
+    }
+
   }
 });
 })();

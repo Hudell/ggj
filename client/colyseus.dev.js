@@ -217,6 +217,7 @@ function assertType(value, type, klass, field) {
             typeofTarget = "number";
             if (isNaN(value)) {
                 console.log("trying to encode \"NaN\" in " + klass.constructor.name + "#" + field);
+                console.log(new Error());
             }
             break;
         case "string":
@@ -1196,7 +1197,6 @@ var ChangeTree = /** @class */ (function () {
         this.changes.set(--this.currentCustomOperation, op);
     };
     ChangeTree.prototype.change = function (fieldName, operation) {
-        console.log('ChangeTree.change(', fieldName, ',', operation, '); Trace:', new Error());
         if (operation === void 0) { operation = spec_1.OPERATION.ADD; }
         var index = (typeof (fieldName) === "number")
             ? fieldName

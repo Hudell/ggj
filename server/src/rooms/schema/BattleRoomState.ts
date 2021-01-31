@@ -140,7 +140,7 @@ export class BattleRoomState extends Schema {
       while (player.traitor)
       {
         i = Math.floor(Math.random() * players.length);
-        player = players[i];        
+        player = players[i];
       }
       this.traitors.push(player.id);
       traitors.push(player.id);
@@ -191,7 +191,7 @@ export class BattleRoomState extends Schema {
     if (this.phase !== 'map' && this.phase !== 'meeting') return false;
 
     if (this.noMoreWeapons()) {
-      this.startVictory();
+      // this.startVictory();
       return true;
     }
 
