@@ -630,8 +630,8 @@ class GGJ$1 extends CyclonePlugin {
   }
 
   static get serverUrl() {
-    return 'ws://127.0.0.1:25672';
-    // return 'ws://161.35.225.85:80';
+    // return 'ws://127.0.0.1:25672';
+    return 'ws://161.35.225.85:80';
   }
 
   static get client() {
