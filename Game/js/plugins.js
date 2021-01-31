@@ -9,7 +9,6 @@ var $plugins =
 {"name":"Cyclone-Movement","status":true,"description":"Adds new movement features to the game v1.01.01\n\n<pluginName:CycloneMovement>","parameters":{"stepCount":"2","collisionStepCount":"1","followerStepsBehind":"3","triggerAllEvents":"false","ignoreEmptyEvents":"true","autoLeaveVehicles":"false","diagonalPathfinding":"true","disableMouseMovement":"false","maxOffset":"0.75","sidestepEvents":"false"}},
 {"name":"wasdKeyMZ","status":true,"description":"It is a plugin that corresponds to the wasd move.","parameters":{}},
 {"name":"colyseus","status":true,"description":"","parameters":{}},
-{"name":"Cyclone-Colyseus","status":true,"description":"<pluginName:CycloneColyseus>","parameters":{}},
 {"name":"Cyclone-EventsMovement","status":true,"description":"Adds new movement features to the game v1.01.01\n\n<pluginName:CycloneEventsMovement>","parameters":{}},
 {"name":"GGJ01","status":true,"description":"<pluginName:GGJ01>","parameters":{}}
 ];

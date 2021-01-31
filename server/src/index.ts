@@ -9,7 +9,7 @@ import { monitor } from "@colyseus/monitor";
 
 import { BattleRoom } from "./rooms/BattleRoom";
 
-const port = Number(process.env.PORT || 2567);
+const port = Number(process.env.PORT || 25672);
 const app = express()
 
 app.use(cors());

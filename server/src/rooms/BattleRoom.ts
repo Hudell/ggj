@@ -6,6 +6,7 @@ import { START_POSITION } from "./schema/constants";
 import { Message } from "./schema/message";
 
 export class BattleRoom extends Room<BattleRoomState> {
+  lastUpdate: number = 0;
 
   onCreate (options: any) {
     this.maxClients = 8;
@@ -17,7 +18,7 @@ export class BattleRoom extends Room<BattleRoomState> {
     this.onMessage("move", this.handleMovement);
     // Send this when a player starts a meeting
     this.onMessage("meeting", this.handleMeeting);
-    // Send a dispatch command when yo throw a weapon in a trashcan   
+    // Send a dispatch command when yo throw a weapon in a trashcan
     this.onMessage("dispatch", this.handleDispatch);
     // Send a release when releasing a trapped weapon
     this.onMessage("release", this.handleRelease);
@@ -30,16 +31,30 @@ export class BattleRoom extends Room<BattleRoomState> {
     // Send a vote message when a character casts a vote
     this.onMessage("vote", this.handleVote);
 
-    this.clock.setInterval(this.onClockUpdate, 1000 / 60);
+    this.clock.setInterval(() => {
+      const now = new Date().getTime();
+      const dt = this.lastUpdate ? now - this.lastUpdate : 1;
+      this.lastUpdate = now;
+      this.onClockUpdate(dt);
+    }, 1000 / 60);
   }
 
   handleStart = (client: Client, message: any) => {
+    console.log('trying to start');
     const player = this.state.playerOf(client);
     // Only start game if on lobby
-    if (!this.state.onLobby()) return;
+    if (!this.state.onLobby()) {
+      console.log('not on lobby baby');
+      return;
+    }
+
     // Only allow the leader to start the game
-    if (!player) return;
-    if (!player.leader) return;
+    if (!player) {
+      console.log('no player');
+      return;
+    }
+    // if (!player.leader) return;
+
     // Can't start without 5 or more players
     if (this.state.onlinePlayers.length < 5) return;
 
@@ -67,6 +82,7 @@ export class BattleRoom extends Room<BattleRoomState> {
     if (typeof x !== 'number' || typeof y !== 'number') return
 
     player.move(this.state.map, x, y);
+    console.log('moved');
   };
 
   handleDispatch = (client: Client, message: any) => {
@@ -97,7 +113,7 @@ export class BattleRoom extends Room<BattleRoomState> {
 
     this.state.pickWeapon(player, weapon);
   };
-  
+
   handleAttack = (client: Client, message: any) => {
     if (!message) return;
     const { id } = message;
@@ -115,8 +131,8 @@ export class BattleRoom extends Room<BattleRoomState> {
       target.weapon.position.set(target.position.x, target.position.y);
       this.state.weapons.push(target.weapon);
     }
-    this.state.bodies.push(new Body(target));    
-  };  
+    this.state.bodies.push(new Body(target));
+  };
 
   handleVote = (client: Client, message: any) => {
     const player = this.state.playerOf(client);
@@ -138,7 +154,6 @@ export class BattleRoom extends Room<BattleRoomState> {
     });
   };
 
-
   handleChat = (client: Client, message: any) => {
     const player = this.state.playerOf(client);
     if (!player) return;
@@ -153,17 +168,13 @@ export class BattleRoom extends Room<BattleRoomState> {
   };
 
   onAuth(client: Client, data: any) {
-    console.log('new oAuth attempt');
     const player = this.state.playerOf(client);
     // Limit it up to 8 characters
     if (this.state.players.length > this.maxClients) return false;
     // Users can only join on the lobby
     if (!this.state.onLobby()) return false;
     // A player can't join twice
-    if (player) {
-      console.log('player is already here')
-      return false;
-    }
+    if (player) return false;
     // You require a name to join
     if (!data && !data.name) return false;
     // And the name must be a string
@@ -180,7 +191,6 @@ export class BattleRoom extends Room<BattleRoomState> {
     const player = this.state.playerOf(client);
     if (!player) return;
     player.position.set(START_POSITION[0], START_POSITION[1]);
-    console.log('broadcast join: ', player);
     this.broadcast('join', player);
   }
 

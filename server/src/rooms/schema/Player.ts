@@ -125,12 +125,30 @@ export class Player extends Schema {
   }
 
   move(map: Map, x: number, y: number) {
-    const d = Math.hypot(x - this.position.x, y - this.position.y);
-    if (d >= MAX_MOVE_DISTANCE) return;
-    if (!map.isPassable(x, y)) return;
+    console.log('player moving', x, y, this.position.x, this.position.y);
+    if (!isNaN(this.position.x) && !isNaN(this.position.y)) {
+      const d = Math.hypot(x - this.position.x, y - this.position.y);
+      console.log(d);
+      if (d >= MAX_MOVE_DISTANCE) {
+        console.log('too far');
+        return;
+      }
 
-    this.moveStart.set(this.position.x, this.position.y);
+      if (!map.isPassable(x, y)) {
+        console.log('not passable');
+        return;
+      }
+
+      console.log('set start', this.position.x, this.position.y);
+      this.moveStart.set(this.position.x, this.position.y);
+    } else {
+      console.log('set start', x, y);
+      this.moveStart.set(x, y);
+    }
+
+    console.log('set target', x, y);
     this.moveTarget.set(x, y);
+    console.log('move time', MOVE_TIME);
     this.moveTime = MOVE_TIME;
   }
 
@@ -138,6 +156,11 @@ export class Player extends Schema {
     if (this.moving) {
       this.moveTime -= dt;
       const t = 1 - Math.max(0, this.moveTime / MOVE_TIME);
+      console.log('update position:', this.moveStart.x + (this.moveTarget.x - this.moveStart.x) * t, this.moveStart.y + (this.moveTarget.y - this.moveStart.y) * t);
+      console.log('t', t);
+      console.log('mvoeTime', this.moveTime);
+      console.log('dt', dt);
+
       this.position.set(
         this.moveStart.x + (this.moveTarget.x - this.moveStart.x) * t,
         this.moveStart.y + (this.moveTarget.y - this.moveStart.y) * t
