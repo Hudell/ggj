@@ -128,9 +128,9 @@ export class BattleRoomState extends Schema {
   pickTraitors() {
     const players = this.onlinePlayers;
     let amount = 1;
-    if (players.length > 7) {
-      amount = 2;
-    }
+    // if (players.length > 8) {
+    //   amount = 2;
+    // }
 
     const traitors = [];
 

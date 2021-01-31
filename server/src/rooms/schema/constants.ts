@@ -1,6 +1,6 @@
 export const TILE_SIZE = 32;
 
-export const START_POSITION = [19, 13];
+export const START_POSITION = [101, 57];
 
 export const MAX_MOVE_DISTANCE = TILE_SIZE;
 
